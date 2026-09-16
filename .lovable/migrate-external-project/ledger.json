@@ -1,0 +1,47 @@
+{
+  "source": "github:MrSmil25/harmony-mate-finder",
+  "capabilities": [
+    {
+      "capability": "app code (TanStack Start academic OS)",
+      "source": "repo src/",
+      "outcome": "preserve",
+      "status": "verified",
+      "next_action": "copy files into project"
+    },
+    {
+      "capability": "database schema (15 tables, RLS)",
+      "source": "supabase/migrations",
+      "outcome": "preserve",
+      "status": "verified",
+      "next_action": "enable Lovable Cloud and apply migrations"
+    },
+    {
+      "capability": "authentication (Supabase Auth via auth.users)",
+      "source": "repo + migrations",
+      "outcome": "preserve",
+      "status": "verified",
+      "next_action": "Lovable Cloud auth (same engine)"
+    },
+    {
+      "capability": "existing records",
+      "source": "repo",
+      "outcome": "pending",
+      "status": "blocked",
+      "next_action": "ask user for CSV/JSON exports after preview"
+    },
+    {
+      "capability": "secrets",
+      "source": ".env excluded (LOVABLE_DB_MIGRATION_URL)",
+      "outcome": "replace",
+      "status": "resolved",
+      "next_action": "Lovable Cloud provides credentials"
+    },
+    {
+      "capability": "drizzle schema/migrations",
+      "source": "drizzle/",
+      "outcome": "preserve (reference)",
+      "status": "done",
+      "next_action": "copy for reference; supabase migrations are authoritative"
+    }
+  ]
+}
