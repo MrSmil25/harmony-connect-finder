@@ -119,6 +119,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "course_enrollments_curriculum_course_id_fkey"
+            columns: ["curriculum_course_id"]
+            isOneToOne: false
+            referencedRelation: "student_course_recommendation_view"
+            referencedColumns: ["curriculum_course_id"]
+          },
+          {
             foreignKeyName: "course_enrollments_custom_course_id_fkey"
             columns: ["custom_course_id"]
             isOneToOne: false
@@ -157,6 +164,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "curriculum_courses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_prerequisites_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "student_course_recommendation_view"
+            referencedColumns: ["curriculum_course_id"]
           },
         ]
       }
@@ -242,6 +256,13 @@ export type Database = {
           track?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "curriculum_courses_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_summary_view"
+            referencedColumns: ["program_id"]
+          },
           {
             foreignKeyName: "curriculum_courses_program_id_fkey"
             columns: ["program_id"]
@@ -694,6 +715,13 @@ export type Database = {
             foreignKeyName: "students_program_id_fkey"
             columns: ["program_id"]
             isOneToOne: false
+            referencedRelation: "curriculum_summary_view"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
             referencedRelation: "programs"
             referencedColumns: ["id"]
           },
@@ -758,15 +786,200 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      curriculum_summary_view: {
+        Row: {
+          category: string | null
+          category_sks: number | null
+          course_count: number | null
+          curriculum_year: number | null
+          program_code: string | null
+          program_id: string | null
+          program_name: string | null
+          total_sks: number | null
+        }
+        Relationships: []
+      }
+      graduation_requirement_view: {
+        Row: {
+          completed_credits: number | null
+          current_semester: number | null
+          graduation_percentage: number | null
+          minimum_graduation_credit: number | null
+          program_id: string | null
+          program_name: string | null
+          remaining_credits: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_summary_view"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_course_recommendation_view: {
+        Row: {
+          already_completed: boolean | null
+          already_taken: boolean | null
+          category: string | null
+          code: string | null
+          course_group: string | null
+          current_semester: number | null
+          curriculum_course_id: string | null
+          name: string | null
+          note: string | null
+          prerequisites: string[] | null
+          prerequisites_met: boolean | null
+          program_id: string | null
+          recommended_semester: number | null
+          sks: number | null
+          track: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_courses_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_summary_view"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "curriculum_courses_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_dashboard_view: {
+        Row: {
+          active_courses: number | null
+          active_credits: number | null
+          completed_credits: number | null
+          completed_tasks: number | null
+          current_semester: number | null
+          curriculum_year: number | null
+          entry_year: number | null
+          faculty: string | null
+          graduation_percentage: number | null
+          minimum_graduation_credit: number | null
+          note_count: number | null
+          onboarding_completed_at: string | null
+          open_tasks: number | null
+          program_code: string | null
+          program_id: string | null
+          program_name: string | null
+          remaining_credits: number | null
+          resource_count: number | null
+          student_id: string | null
+          student_name: string | null
+          target_gpa: number | null
+          university: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_summary_view"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_home_dashboard_view: {
+        Row: {
+          active_courses: number | null
+          active_credits: number | null
+          completed_credits: number | null
+          current_semester: number | null
+          curriculum_year: number | null
+          entry_year: number | null
+          faculty: string | null
+          graduation_percentage: number | null
+          minimum_graduation_credit: number | null
+          onboarding_completed_at: string | null
+          program_code: string | null
+          program_id: string | null
+          program_name: string | null
+          remaining_credits: number | null
+          student_id: string | null
+          student_name: string | null
+          target_gpa: number | null
+          university: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_summary_view"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "students_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -893,6 +1106,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
