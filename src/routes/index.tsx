@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, Clock3,
-  Download, ExternalLink, FileText, Flag, GraduationCap, Hand, Home, Library, Link2, ListTodo,
-  MapPin, Milestone, MoreHorizontal, NotebookPen, Paperclip, Pencil, Plus, Save, Search, Settings, Trash2, UserRound, X,
+  Download, ExternalLink, FileText, Flag, GraduationCap, Hand, Home, Layers, Library, Link2, ListTodo,
+  MapPin, Milestone, MoreHorizontal, NotebookPen, Paperclip, Pencil, Plus, Save, Search, Settings, Target, Trash2, UserRound, X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,13 @@ import { AssistantSessionList, AssistantSessionsPanel, CourseLinksPanel, Semeste
 import { EmptyState } from "@/components/empty-state";
 import { SettingsView } from "@/components/settings";
 import type { AcademicExport } from "@/lib/export-data";
+import { useAuth } from "@/lib/auth";
+import { AuthScreen } from "@/components/auth-screen";
+import { CurriculumExplorer } from "@/components/curriculum-explorer";
+import { KrsPlanner } from "@/components/krs-planner";
+import { useCurriculum, useDashboard, useLibrary, useStudentCourses, type DashboardRow, type StudentCourse } from "@/data/academic";
 
-type View = "home" | "courses" | "calendar" | "tasks" | "library" | "settings";
+type View = "home" | "courses" | "curriculum" | "planner" | "calendar" | "tasks" | "library" | "settings";
 
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
