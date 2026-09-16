@@ -4,29 +4,28 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Personal academic workspace session.
  *
- * There is no login screen: opening the app silently creates (or restores) an
- * anonymous account so every visitor gets isolated, private data.
+ * The workspace belongs to the signed-in account; every read and write is
+ * scoped to that account by row level security.
  */
 
 let sessionPromise: Promise<string | null> | null = null;
 
 async function resolveUserId(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
-  if (data.session?.user) return data.session.user.id;
-
-  const { data: created, error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    console.error("Could not open the personal workspace", error);
-    return null;
-  }
-  return created.user?.id ?? null;
+  return data.session?.user?.id ?? null;
 }
 
-/** Ensures an anonymous session exists. Safe to call from anywhere, runs once. */
+/** Resolves the signed-in account id. Safe to call from anywhere, runs once. */
 export function ensureWorkspaceSession(): Promise<string | null> {
   if (typeof window === "undefined") return Promise.resolve(null);
   if (!sessionPromise) sessionPromise = resolveUserId();
   return sessionPromise;
+}
+
+/** Clears cached session + profile so the next read reflects the new account. */
+export function resetWorkspaceSession() {
+  sessionPromise = null;
+  studentPromise = null;
 }
 
 export type StudentRecord = {

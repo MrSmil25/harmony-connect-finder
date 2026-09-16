@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight, Clock3,
-  Download, ExternalLink, FileText, Flag, GraduationCap, Hand, Home, Library, Link2, ListTodo,
-  MapPin, Milestone, MoreHorizontal, NotebookPen, Paperclip, Pencil, Plus, Save, Search, Settings, Trash2, UserRound, X,
+  Download, ExternalLink, FileText, Flag, GraduationCap, Hand, Home, Layers, Library, Link2, ListTodo,
+  MapPin, Milestone, MoreHorizontal, NotebookPen, Paperclip, Pencil, Plus, Save, Search, Settings, Target, Trash2, UserRound, X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,13 @@ import { AssistantSessionList, AssistantSessionsPanel, CourseLinksPanel, Semeste
 import { EmptyState } from "@/components/empty-state";
 import { SettingsView } from "@/components/settings";
 import type { AcademicExport } from "@/lib/export-data";
+import { useAuth } from "@/lib/auth";
+import { AuthScreen } from "@/components/auth-screen";
+import { CurriculumExplorer } from "@/components/curriculum-explorer";
+import { KrsPlanner } from "@/components/krs-planner";
+import { useCurriculum, useDashboard, useLibrary, useStudentCourses, type DashboardRow, type StudentCourse } from "@/data/academic";
 
-type View = "home" | "courses" | "calendar" | "tasks" | "library" | "settings";
+type View = "home" | "courses" | "curriculum" | "planner" | "calendar" | "tasks" | "library" | "settings";
 
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -224,10 +229,20 @@ export const Route = createFileRoute("/")({
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
-  component: AcademicApp,
+  component: AppRoot,
 });
 
-function AcademicApp() {
+/** Shows the sign-in screen until an account is available, then the workspace. */
+function AppRoot() {
+  const { ready: authReady, user } = useAuth();
+  if (!authReady) {
+    return <div className="grid min-h-screen place-items-center bg-background px-6 text-center text-sm text-muted-foreground">Opening your academic workspace…</div>;
+  }
+  if (!user) return <AuthScreen />;
+  return <AcademicApp key={user.id} userId={user.id} />;
+}
+
+function AcademicApp({ userId }: { userId: string }) {
   const [view, setView] = useState<View>("home");
   const [workspace, setWorkspace] = useState<Course | null>(null);
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -240,6 +255,11 @@ function AcademicApp() {
   const [notesAdded, setNotesAdded] = useState(0);
   const { ready, setup, save: saveSetup, reset: resetSetup } = useSetup();
   const semesterData = useSemesterData();
+  const { dashboard, refresh: refreshDashboard } = useDashboard();
+  const { courses: liveCourses, refresh: refreshLiveCourses } = useStudentCourses();
+  const { rows: curriculumRows, loading: curriculumLoading, refresh: refreshCurriculum } = useCurriculum();
+  const library = useLibrary();
+  const courseStats = useMemo(() => new Map(liveCourses.map((course) => [course.code, course])), [liveCourses]);
 
   const myCourses = useMemo<Course[]>(() => {
     if (!setup || !setup.active.length) return courses;
@@ -325,11 +345,13 @@ function AcademicApp() {
       <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 md:py-8">
         {exam ? <StudyCommandCenter event={exam} onBack={() => setExam(null)} sessions={studySessions} onAddSession={addStudySession} onRemoveSession={removeStudySession} /> : workspace ? <CourseWorkspace course={workspace} onBack={() => setWorkspace(null)} onOpenExam={openExamForCourse} links={semesterData.links.filter((link) => link.code === workspace.code)} onAddLink={semesterData.addLink} onRemoveLink={semesterData.removeLink} sessions={semesterData.sessions.filter((session) => session.code === workspace.code)} onAddSession={semesterData.addSession} onRemoveSession={semesterData.removeSession} /> : journey ? <AcademicJourney onBack={() => setJourney(false)} onOpenCourse={openCurriculumCourse} setup={setup} /> : (
           <div key={view} className="page-enter">
-            {view === "home" && <HomeView tasks={tasks} toggleTask={toggleTask} navigate={navigate} onOpenExam={setExam} onOpenJourney={() => { setJourney(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} onSearch={() => setSearchOpen(true)} onNotifications={() => setNotifOpen(true)} notificationCount={notifications.length} studySessions={studySessions.length} resourcesAdded={resourcesAdded + notesAdded} profile={setup} myCourses={myCourses} onEditSetup={resetSetup} semesterData={semesterData} onSettings={() => navigate("settings")} />}
-            {view === "courses" && <CoursesView onOpen={setWorkspace} courses={myCourses} semesterLabel={setup ? `Semester ${setup.currentSemester}` : "Semester Gasal 2026/2027"} />}
+            {view === "home" && <HomeView tasks={tasks} toggleTask={toggleTask} navigate={navigate} onOpenExam={setExam} onOpenJourney={() => { setJourney(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} onSearch={() => setSearchOpen(true)} onNotifications={() => setNotifOpen(true)} notificationCount={notifications.length} studySessions={studySessions.length} resourcesAdded={resourcesAdded + notesAdded} profile={setup} myCourses={myCourses} onEditSetup={resetSetup} semesterData={semesterData} onSettings={() => navigate("settings")} dashboard={dashboard} />}
+            {view === "courses" && <CoursesView onOpen={setWorkspace} courses={myCourses} semesterLabel={setup ? `Semester ${setup.currentSemester}` : "Semester Gasal 2026/2027"} stats={courseStats} />}
+            {view === "curriculum" && <CurriculumExplorer rows={curriculumRows} loading={curriculumLoading} dashboard={dashboard} onOpenSetup={resetSetup} />}
+            {view === "planner" && <KrsPlanner rows={curriculumRows} loading={curriculumLoading} dashboard={dashboard} userId={userId} onOpenSetup={resetSetup} onSaved={() => { void refreshCurriculum(); void refreshLiveCourses(); void refreshDashboard(); }} />}
             {view === "calendar" && <CalendarView studySessions={studySessions} assistantSessions={semesterData.sessions} />}
             {view === "tasks" && <TasksView tasks={tasks} toggleTask={toggleTask} updateTask={updateTask} addTask={addTask} navigate={navigate} />}
-            {view === "library" && <LibraryView />}
+            {view === "library" && <LibraryView resources={library.resources} notes={library.notes} loading={library.loading} />}
             {view === "settings" && <SettingsView setup={setup} data={exportData} progress={degreeProgress(setup?.completed ?? [])} onBack={() => navigate("home")} onEditSetup={resetSetup} />}
           </div>
         )}
@@ -383,11 +405,11 @@ function DesktopHeader({ view, navigate, onSearch, onNotifications, notification
 
 
 const navItems: { id: View; label: string; icon: typeof Home }[] = [
-  { id: "home", label: "Home", icon: Home }, { id: "courses", label: "Courses", icon: BookOpen }, { id: "calendar", label: "Calendar", icon: CalendarDays }, { id: "tasks", label: "Tasks", icon: ListTodo }, { id: "library", label: "Library", icon: Library },
+  { id: "home", label: "Home", icon: Home }, { id: "courses", label: "Courses", icon: BookOpen }, { id: "curriculum", label: "Curriculum", icon: Layers }, { id: "planner", label: "Planner", icon: Target }, { id: "calendar", label: "Calendar", icon: CalendarDays }, { id: "tasks", label: "Tasks", icon: ListTodo }, { id: "library", label: "Library", icon: Library },
 ];
 
 function BottomNav({ view, navigate }: { view: View; navigate: (view: View) => void }) {
-  return <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-surface/95 px-2 pt-2 shadow-[0_-8px_24px_color-mix(in_oklab,var(--academic)_8%,transparent)] backdrop-blur md:hidden">{navItems.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => navigate(id)} aria-label={label} className={`flex min-w-0 flex-col items-center gap-1 py-1 text-[10px] font-semibold transition-colors ${view === id ? "text-academic" : "text-muted-foreground"}`}><span className={`grid size-8 place-items-center rounded-xl ${view === id ? "bg-primary" : ""}`}><Icon className="size-4" /></span>{label}</button>)}</nav>;
+  return <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t border-border bg-surface/95 px-1 pt-2 shadow-[0_-8px_24px_color-mix(in_oklab,var(--academic)_8%,transparent)] backdrop-blur md:hidden">{navItems.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => navigate(id)} aria-label={label} className={`flex min-w-0 flex-col items-center gap-1 py-1 text-[9px] font-semibold transition-colors ${view === id ? "text-academic" : "text-muted-foreground"}`}><span className={`grid size-8 place-items-center rounded-xl ${view === id ? "bg-primary" : ""}`}><Icon className="size-4" /></span><span className="w-full truncate px-0.5 text-center">{label}</span></button>)}</nav>;
 }
 
 function MobileTop({ eyebrow, title, action }: { eyebrow: string; title: React.ReactNode; action?: React.ReactNode }) {
@@ -396,7 +418,7 @@ function MobileTop({ eyebrow, title, action }: { eyebrow: string; title: React.R
 
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) { return <div className="mb-3 flex items-center justify-between gap-3"><h2 className="text-base font-bold md:text-lg">{title}</h2>{action}</div>; }
 
-function HomeView({ tasks, toggleTask, navigate, onOpenExam, onOpenJourney, onSearch, onNotifications, notificationCount, studySessions, resourcesAdded, profile, myCourses, onEditSetup, semesterData, onSettings }: { tasks: Task[]; toggleTask: (id: number) => void; navigate: (view: View) => void; onOpenExam: (exam: Exam) => void; onOpenJourney: () => void; onSearch: () => void; onNotifications: () => void; notificationCount: number; studySessions: number; resourcesAdded: number; profile: StudentSetup | null; myCourses: Course[]; onEditSetup: () => void; semesterData: ReturnType<typeof useSemesterData>; onSettings: () => void }) {
+function HomeView({ tasks, toggleTask, navigate, onOpenExam, onOpenJourney, onSearch, onNotifications, notificationCount, studySessions, resourcesAdded, profile, myCourses, onEditSetup, semesterData, onSettings, dashboard }: { tasks: Task[]; toggleTask: (id: number) => void; navigate: (view: View) => void; onOpenExam: (exam: Exam) => void; onOpenJourney: () => void; onSearch: () => void; onNotifications: () => void; notificationCount: number; studySessions: number; resourcesAdded: number; profile: StudentSetup | null; myCourses: Course[]; onEditSetup: () => void; semesterData: ReturnType<typeof useSemesterData>; onSettings: () => void; dashboard: DashboardRow | null }) {
   const { greeting, dayName, dateLabel } = useNow();
   const openTasks = tasks.filter((task) => !task.done);
   const featuredTask = openTasks[0];
@@ -411,9 +433,17 @@ function HomeView({ tasks, toggleTask, navigate, onOpenExam, onOpenJourney, onSe
   const upcoming = profile
     ? myCourses.slice(0, 4).map((course) => ({ label: course.day === todayName ? "Today" : "This week", day: `${course.day} · Class ${course.section ?? "-"}`, time: course.time, title: course.title, room: course.room, color: course.accent }))
     : defaultUpcoming;
-  const studentName = profile?.name ?? studentProfile.name;
-  const semesterNumber = profile?.currentSemester ?? studentProfile.currentSemester;
-  const progressStats = degreeProgress(profile?.completed ?? []);
+  const studentName = dashboard?.student_name || profile?.name || studentProfile.name;
+  const semesterNumber = dashboard?.current_semester ?? profile?.currentSemester ?? studentProfile.currentSemester;
+  const localProgress = degreeProgress(profile?.completed ?? []);
+  const progressStats = dashboard && (dashboard.completed_credits ?? 0) > 0
+    ? {
+        completedSks: dashboard.completed_credits ?? 0,
+        totalSks: dashboard.minimum_graduation_credit ?? localProgress.totalSks,
+        remainingSks: dashboard.remaining_credits ?? 0,
+        percent: dashboard.graduation_percentage ?? 0,
+      }
+    : localProgress;
   const activeSks = myCourses.reduce((total, course) => total + course.sks, 0);
 
   return <div>
